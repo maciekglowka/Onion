@@ -27,6 +27,42 @@ namespace Onion
         private static Options options;
 
         [MultiReturn(new[] { "element A", "element B" })]
+        public static Dictionary<string, object> UnjoinNotIntersecting()
+        {
+            IList outputA = new List<object>();
+            IList outputB = new List<object>();
+            Document document = DocumentManager.Instance.CurrentDBDocument;
+            IList<Autodesk.Revit.DB.FailureMessage> messages = document.GetWarnings();
+            TransactionManager.Instance.EnsureInTransaction(document);
+
+                foreach (Autodesk.Revit.DB.FailureMessage fm in messages)
+                {
+                    if (fm.GetFailureDefinitionId() == BuiltInFailures.JoinElementsFailures.JoiningDisjointWarn || fm.GetFailureDefinitionId() == BuiltInFailures.JoinElementsFailures.JoiningDisjoint)
+                    {
+                        List<ElementId> ids = fm.GetFailingElements().ToList();
+                        if (ids.Count==2) try
+                        {
+                            Autodesk.Revit.DB.Element eA = document.GetElement(ids[0]);
+                            Autodesk.Revit.DB.Element eB = document.GetElement(ids[1]);
+                            JoinGeometryUtils.UnjoinGeometry(document, eA, eB);
+                            outputA.Add(eA.ToDSType(true));
+                            outputB.Add(eB.ToDSType(true));
+                        }
+                        catch (Autodesk.Revit.Exceptions.ApplicationException)
+                        {
+                        }
+                    }
+                }
+
+            TransactionManager.Instance.TransactionTaskDone();
+            return new Dictionary<string, object>
+            {
+                {"element A", outputA },
+                {"element B", outputB }
+            };
+        }
+
+        [MultiReturn(new[] { "element A", "element B" })]
         public static Dictionary<string, object> JoinList(List<Revit.Elements.Element> elementsA, List<Revit.Elements.Element> elementsB)
         {
             IList outputA = new List<object>();
@@ -79,7 +115,6 @@ namespace Onion
                     }
                 }
 
-
                 TransactionManager.Instance.TransactionTaskDone();
                 pbForm.Close();
             }
@@ -110,78 +145,6 @@ namespace Onion
               overlap1D(A.Min.Z, A.Max.Z, B.Min.Z, B.Max.Z);
 
         }
-        /*
-        private static List<Autodesk.Revit.DB.Solid> getSolids(Autodesk.Revit.DB.Element e)
-        {
-            List<Autodesk.Revit.DB.Solid> solids = new List<Autodesk.Revit.DB.Solid>();
-            GeometryElement gE = e.get_Geometry(options);
-
-            foreach (GeometryObject gO in gE)
-            {
-                Autodesk.Revit.DB.Solid s = gO as Autodesk.Revit.DB.Solid;
-                if (s != null)
-                {
-                    solids.Add(s);
-                }
-                GeometryInstance gI = gO as GeometryInstance;
-                if (gI != null)
-                {
-                    GeometryElement instanceElement = gI.GetInstanceGeometry();
-                    foreach (GeometryObject instanceObject in instanceElement)
-                    {
-                        Autodesk.Revit.DB.Solid instancesolid = instanceObject as Autodesk.Revit.DB.Solid;
-                        if (instancesolid != null)
-                        {
-                            solids.Add(instancesolid);
-                        }
-                    }
-                }
-            }
-
-            return solids;
-        }
-
-        private static bool solidIntersect(Autodesk.Revit.DB.Solid sA, Autodesk.Revit.DB.Solid sB)
-        {
-            try
-            {
-                Autodesk.Revit.DB.Solid intersection = BooleanOperationsUtils.ExecuteBooleanOperation(sA, sB, BooleanOperationsType.Intersect);
-                if (Math.Abs(intersection.Volume) > 0.000001)
-                {
-                    return true;
-                }
-
-                Autodesk.Revit.DB.Solid union = BooleanOperationsUtils.ExecuteBooleanOperation(sA, sB, BooleanOperationsType.Union);
-                double area = Math.Abs(sA.SurfaceArea + sB.SurfaceArea - union.SurfaceArea);
-                if (area > 0.00001)
-                {
-                    return true;
-                }
-            }
-            catch (Autodesk.Revit.Exceptions.ApplicationException)
-            {
-
-            }
-
-            return false;
-        }
-
-        private static bool elementIntersect(Autodesk.Revit.DB.Element a, Autodesk.Revit.DB.Element b)
-        {
-            List<Autodesk.Revit.DB.Solid> solidsA = getSolids(a);
-            List<Autodesk.Revit.DB.Solid> solidsB = getSolids(b);
-
-            foreach (Autodesk.Revit.DB.Solid sA in solidsA)
-            {
-                foreach (Autodesk.Revit.DB.Solid sB in solidsB)
-                {
-                    if (solidIntersect(sA, sB)) return true;
-                }
-            }
-
-            return false;
-        }
-        */
 
         private class ProgressBarForm : System.Windows.Forms.Form
         {
