@@ -237,10 +237,20 @@ namespace Onion
                             if (Utils.elementIntersect(a.InternalElement, b.InternalElement, options))
                             {
                                 XYZ ip = ra.get_Item(0).XYZPoint;
-                                IntersectionResult result = lcA.Curve.Project(ip);
+                                Autodesk.Revit.DB.Curve verticalCurve = Autodesk.Revit.DB.Line.CreateUnbound(ip, XYZ.BasisZ);
+                                IntersectionResultArray raVertical = new IntersectionResultArray();
+                                SetComparisonResult resultVertical = lcA.Curve.Intersect(verticalCurve, out raVertical);
+                                if (resultVertical == SetComparisonResult.Overlap)
+                                {
+                                    XYZ resultPoint = raVertical.get_Item(0).XYZPoint;                                 
+                                    outputPoint.Add(resultPoint.ToPoint());
+                                } else
+                                {
+                                    outputPoint.Add(null);
+                                }
+
                                 outputA.Add(a);
                                 outputB.Add(b);
-                                outputPoint.Add(result.XYZPoint.ToPoint());
                             }
 
                         }

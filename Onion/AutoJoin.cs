@@ -63,7 +63,7 @@ namespace Onion
         }
 
         [MultiReturn(new[] { "element A", "element B" })]
-        public static Dictionary<string, object> JoinList(List<Revit.Elements.Element> elementsA, List<Revit.Elements.Element> elementsB)
+        public static Dictionary<string, object> JoinList(List<Revit.Elements.Element> elementsA, List<Revit.Elements.Element> elementsB, double tolerance= 1.0e-09)
         {
             IList outputA = new List<object>();
             IList outputB = new List<object>();
@@ -93,14 +93,13 @@ namespace Onion
                             BoundingBoxXYZ bbB = eB.get_BoundingBox(null);
                             if (eA != eB && bbB != null)
                             {
-                                if (bbIntersect(bbA, bbB))
+                                if (bbIntersect(bbA, bbB, tolerance))
                                 {
                                     if (Utils.elementIntersect(eA, eB, options))
                                     {
                                         try
                                         {
                                             JoinGeometryUtils.JoinGeometry(doc, eA, eB);
-                                            //output.Add(new List<Revit.Elements.Element>() { elementsA[i], elementsB[j] });
                                             outputA.Add(elementsA[i]);
                                             outputB.Add(elementsB[j]);
                                         }
@@ -132,17 +131,17 @@ namespace Onion
             pbForm.Text = progress.ToString() + "%";
         }
 
-        private static bool overlap1D(double a1, double a2, double b1, double b2)
+        private static bool overlap1D(double a1, double a2, double b1, double b2, double tolerance)
         {
-            if (a2 >= b1 && b2 >= a1) return true;
+            if (a2 + tolerance >= b1 && b2 + tolerance >= a1) return true;
             return false;
         }
-        private static bool bbIntersect(BoundingBoxXYZ A, BoundingBoxXYZ B)
+        private static bool bbIntersect(BoundingBoxXYZ A, BoundingBoxXYZ B, double tolerance)
         {
 
-            return overlap1D(A.Min.X, A.Max.X, B.Min.X, B.Max.X) &&
-              overlap1D(A.Min.Y, A.Max.Y, B.Min.Y, B.Max.Y) &&
-              overlap1D(A.Min.Z, A.Max.Z, B.Min.Z, B.Max.Z);
+            return overlap1D(A.Min.X, A.Max.X, B.Min.X, B.Max.X, tolerance) &&
+              overlap1D(A.Min.Y, A.Max.Y, B.Min.Y, B.Max.Y, tolerance) &&
+              overlap1D(A.Min.Z, A.Max.Z, B.Min.Z, B.Max.Z, tolerance);
 
         }
 
